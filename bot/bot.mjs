@@ -2,7 +2,7 @@
 // secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, ADMIN_DATA_KEY, GH_PAT.
 // The bot token never appears in any page source.
 //
-// Run every 2 minutes: drains the alert queue, polls Telegram updates
+// Run every 5 minutes (GitHub's minimum schedule interval): drains the alert queue, polls Telegram updates
 // (inline-keyboard control panel), and sends scheduled daily/monthly reports
 // at 21:00 Cairo time.
 import crypto from "node:crypto";
