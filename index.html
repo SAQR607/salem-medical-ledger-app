@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المدخلات والمخرجات المادية الشهري</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-4 left-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md font-extrabold text-lg">
+                        <span>₪</span>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base sm:text-lg text-slate-800 dark:text-white leading-tight">نظام إدارة المدخلات والمخرجات المادية</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">التسجيل الشهري، متابعة التدفقات النقدية، والتقارير الختامية</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Month Selector -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-700/70 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600">
+                        <label for="month-picker" class="text-xs font-semibold text-slate-500 dark:text-slate-300 hidden sm:inline">الشهر:</label>
+                        <input type="month" id="month-picker" value="2026-11" class="bg-transparent text-xs sm:text-sm font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer">
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white bg-slate-100 dark:bg-slate-700/60 transition" title="تبديل المظهر">
+                        <svg id="theme-sun-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707-.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <svg id="theme-moon-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    </button>
+
+                    <!-- Add Transaction Button -->
+                    <button id="open-add-tx-btn" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>تسجيل حركة جديدة</span>
+                    </button>
+
+                    <!-- User chip -->
+                    <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/70 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-extrabold" id="user-avatar">؟</div>
+                        <div class="leading-tight hidden sm:block">
+                            <p class="text-xs font-bold text-slate-800 dark:text-white" id="user-display">…</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400" id="user-role">…</p>
+                        </div>
+                        <button id="logout-btn" class="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 transition" title="تسجيل الخروج">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <nav class="flex gap-2 border-t border-slate-100 dark:border-slate-700/60 py-2 overflow-x-auto text-xs sm:text-sm">
+                <button data-tab="overview" class="tab-btn px-3.5 py-1.5 rounded-lg font-bold bg-emerald-50 text-emerald-700 dark:bg-slate-700 dark:text-white transition whitespace-nowrap">
+                    📊 لوحة الشهر والمؤشرات
+                </button>
+                <button data-tab="ledger" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition whitespace-nowrap">
+                    📑 سجل المدخلات والمخرجات
+                </button>
+                <button data-tab="monthly-summary" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition whitespace-nowrap">
+                    📅 ملخص الأشهر والتقارير
+                </button>
+                <button data-tab="categories" class="tab-btn px-3.5 py-1.5 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition whitespace-nowrap">
+                    ⚙️ البنود والنسخ الاحتياطي
+                </button>
+                <button data-tab="admin" id="admin-tab-btn" class="tab-btn hidden px-3.5 py-1.5 rounded-lg font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition whitespace-nowrap">
+                    👥 إدارة المستخدمين
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- KPI Summary Cards -->
+        <section id="kpi-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm print-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">إجمالي المدخلات (الإيرادات)</span>
+                    <span class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center text-sm font-bold">↑</span>
+                </div>
+                <h3 id="kpi-income" class="text-2xl font-extrabold text-emerald-600 mt-2">0 ج.م</h3>
+                <p id="kpi-income-count" class="text-xs text-slate-400 mt-1">0 عملية واردة</p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm print-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">إجمالي المخرجات (المصروفات)</span>
+                    <span class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/40 text-rose-600 flex items-center justify-center text-sm font-bold">↓</span>
+                </div>
+                <h3 id="kpi-expense" class="text-2xl font-extrabold text-rose-600 mt-2">0 ج.م</h3>
+                <p id="kpi-expense-count" class="text-xs text-slate-400 mt-1">0 عملية منصرفة</p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm print-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">صافي الشهر (الفائض / العجز)</span>
+                    <span class="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center text-sm font-bold">=</span>
+                </div>
+                <h3 id="kpi-net" class="text-2xl font-extrabold text-slate-800 dark:text-white mt-2">0 ج.م</h3>
+                <p id="kpi-net-status" class="text-xs text-slate-400 mt-1">حالة الميزانية الشهرية</p>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm print-card">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">نسبة الفائض من الدخل</span>
+                    <span class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center text-sm font-bold">%</span>
+                </div>
+                <h3 id="kpi-margin" class="text-2xl font-extrabold text-amber-600 mt-2">0%</h3>
+                <p class="text-xs text-slate-400 mt-1">كفاءة الإدارة المالية للشهر</p>
+            </div>
+        </section>
+
+        <!-- ================= TAB 1: OVERVIEW ================= -->
+        <section id="tab-overview" class="tab-content space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm no-print">
+                <h2 class="font-bold text-sm text-slate-800 dark:text-white mb-3">تسجيل سريع لحركة مادية في <span id="quick-form-month-label" class="text-emerald-600">نوفمبر 2026</span></h2>
+                <form id="quick-tx-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end text-sm">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">النوع</label>
+                        <select id="quick-type" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <option value="income">مدخل (إيراد)</option>
+                            <option value="expense">مخرج (مصروف)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">البند</label>
+                        <select id="quick-category" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">المبلغ (ج.م)</label>
+                        <input type="number" id="quick-amount" min="1" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">التاريخ</label>
+                        <input type="date" id="quick-date" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">بيان مختصر</label>
+                        <input type="text" id="quick-desc" required placeholder="مثال: اشتراك شهر نوفمبر" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl transition shadow-sm">
+                        + إضافة للسجل
+                    </button>
+                </form>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 dark:text-white text-sm sm:text-base">مقارنة المدخلات والمخرجات الشهرية</h3>
+                            <p class="text-xs text-slate-500">الأداء المالي عبر الأشهر المسجلة</p>
+                        </div>
+                    </div>
+                    <div class="relative h-72">
+                        <canvas id="monthlyComparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800 dark:text-white text-sm sm:text-base">توزيع البنود للشهر</h3>
+                        <div class="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5 text-xs">
+                            <button id="chart-mode-expense" class="px-2.5 py-1 rounded-md font-bold bg-white dark:bg-slate-600 text-rose-600 dark:text-rose-300 shadow-sm">مخرجات</button>
+                            <button id="chart-mode-income" class="px-2.5 py-1 rounded-md font-medium text-slate-500 dark:text-slate-300">مدخلات</button>
+                        </div>
+                    </div>
+                    <div class="relative h-72 flex-1">
+                        <canvas id="categoryBreakdownChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 dark:text-white text-sm">أحدث حركات الشهر المحدد</h3>
+                    <button id="go-to-ledger-btn" class="text-xs font-bold text-emerald-600 hover:text-emerald-700">عرض السجل الكامل ←</button>
+                </div>
+                <div id="recent-tx-list" class="divide-y divide-slate-100 dark:divide-slate-700"></div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: LEDGER ================= -->
+        <section id="tab-ledger" class="tab-content hidden space-y-5">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-wrap gap-3 items-center justify-between no-print">
+                <div class="flex flex-wrap gap-3 items-center flex-1">
+                    <input type="text" id="ledger-search" placeholder="ابحث في البيان أو البند..." class="w-full sm:w-64 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white">
+                    <select id="ledger-filter-type" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm dark:text-white">
+                        <option value="all">الكل (مدخلات ومخرجات)</option>
+                        <option value="income">المدخلات فقط (إيرادات)</option>
+                        <option value="expense">المخرجات فقط (مصروفات)</option>
+                    </select>
+                    <select id="ledger-filter-method" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm dark:text-white">
+                        <option value="all">كل طرق الدفع</option>
+                        <option value="نقدي">نقدي</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="إنستاباي">إنستاباي</option>
+                        <option value="فودافون كاش">فودافون كاش</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="export-month-csv-btn" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                        تصدير الشهر (CSV)
+                    </button>
+                    <button id="print-ledger-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                        طباعة التقرير
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden print-card">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-xs border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="py-3 px-4">التاريخ</th>
+                                <th class="py-3 px-4">النوع</th>
+                                <th class="py-3 px-4">البند</th>
+                                <th class="py-3 px-4">البيان / الوصف</th>
+                                <th class="py-3 px-4">طريقة الدفع</th>
+                                <th class="py-3 px-4">المبلغ</th>
+                                <th class="py-3 px-4 text-center no-print">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                        <tfoot id="ledger-table-foot" class="bg-slate-50 dark:bg-slate-700/30 font-bold text-xs border-t border-slate-200 dark:border-slate-700"></tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: MONTHLY SUMMARY ================= -->
+        <section id="tab-monthly-summary" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-bold text-slate-800 dark:text-white text-base">السجل المجمع للأشهر (الإغلاق الشهري)</h2>
+                    <p class="text-xs text-slate-500">اضغط على أي شهر لعرض تفاصيله والانتقال إليه مباشرة</p>
+                </div>
+                <div class="flex gap-2 no-print">
+                    <button id="save-report-btn" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+                        💾 حفظ تقرير الشهر
+                    </button>
+                    <button id="print-annual-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+                        طباعة الملخص الشهري
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden print-card">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-xs border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="py-3 px-4">الشهر</th>
+                                <th class="py-3 px-4">عدد الحركات</th>
+                                <th class="py-3 px-4">إجمالي المدخلات</th>
+                                <th class="py-3 px-4">إجمالي المخرجات</th>
+                                <th class="py-3 px-4">صافي الشهر</th>
+                                <th class="py-3 px-4">الحالة</th>
+                                <th class="py-3 px-4 text-center no-print">استعراض</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-summary-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: CATEGORIES & BACKUP ================= -->
+        <section id="tab-categories" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                    <h3 class="font-bold text-emerald-700 dark:text-emerald-400 text-base">بنود المدخلات (الإيرادات)</h3>
+                    <form id="add-income-cat-form" class="flex gap-2">
+                        <input type="text" id="new-income-cat" required placeholder="أضف بند إيراد جديد..." class="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm dark:text-white focus:outline-none">
+                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">إضافة</button>
+                    </form>
+                    <div id="income-cats-list" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                    <h3 class="font-bold text-rose-700 dark:text-rose-400 text-base">بنود المخرجات (المصروفات)</h3>
+                    <form id="add-expense-cat-form" class="flex gap-2">
+                        <input type="text" id="new-expense-cat" required placeholder="أضف بند مصروف جديد..." class="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sm dark:text-white focus:outline-none">
+                        <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">إضافة</button>
+                    </form>
+                    <div id="expense-cats-list" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <div>
+                    <h3 class="font-bold text-slate-800 dark:text-white text-base">إدارة البيانات والنسخ الاحتياطي</h3>
+                    <p class="text-xs text-slate-500 mt-1">يُحفظ كل شيء تلقائياً في قاعدة البيانات المشفّرة عند كل عملية. يمكنك تصدير نسخة احتياطية أو استعادتها في أي وقت.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button id="export-json-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl text-xs font-bold transition">
+                        تحميل نسخة احتياطية (JSON)
+                    </button>
+                    <div>
+                        <input type="file" id="import-json-input" accept=".json" class="hidden">
+                        <button id="import-json-btn" class="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white py-2.5 px-4 rounded-xl text-xs font-bold transition">
+                            استعادة من ملف (JSON)
+                        </button>
+                    </div>
+                    <button id="reset-data-btn" class="bg-rose-600 hover:bg-rose-700 text-white py-2.5 px-4 rounded-xl text-xs font-bold transition">
+                        استعادة البيانات الافتراضية
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 5: ADMIN (users) ================= -->
+        <section id="tab-admin" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+                <h3 class="font-bold text-slate-800 dark:text-white text-base mb-1">إنشاء مستخدم جديد</h3>
+                <p class="text-xs text-slate-500 mb-4">كل مستخدم يرى بياناته المالية فقط. المدير يرى ويدير كل شيء.</p>
+                <form id="add-user-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end text-sm">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">اسم المستخدم (لاتيني/أرقام)</label>
+                        <input type="text" id="new-username" required pattern="[A-Za-z0-9._-]{3,32}" title="3-32 حرفاً: أحرف لاتينية وأرقام و _ . -"
+                               class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="sara">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">الاسم المعروض</label>
+                        <input type="text" id="new-display-name" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="سارة أحمد">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">كلمة المرور</label>
+                        <input type="text" id="new-password" required minlength="8" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="8 أحرف على الأقل">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">الصلاحية</label>
+                        <select id="new-role" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white">
+                            <option value="accountant">محاسب (بياناته فقط)</option>
+                            <option value="admin">مدير (كل الصلاحيات)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl transition shadow-sm">
+                        + إنشاء المستخدم
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 dark:border-slate-700">
+                    <h3 class="font-bold text-slate-800 dark:text-white text-sm">المستخدمون (<span id="users-count">0</span>)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-xs border-b border-slate-200 dark:border-slate-700">
+                            <tr>
+                                <th class="py-3 px-4">المستخدم</th>
+                                <th class="py-3 px-4">الصلاحية</th>
+                                <th class="py-3 px-4">الحالة</th>
+                                <th class="py-3 px-4">أُنشئ في</th>
+                                <th class="py-3 px-4 text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Add/Edit Transaction Modal -->
+    <div id="modal-tx" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-4">
+                <h3 id="modal-tx-title" class="font-bold text-lg text-slate-800 dark:text-white">تسجيل حركة مادية جديدة</h3>
+                <button id="close-tx-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl">✕</button>
+            </div>
+            <form id="tx-form" class="space-y-4 text-sm">
+                <input type="hidden" id="tx-id">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">نوع الحركة *</label>
+                        <select id="tx-type" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white">
+                            <option value="income">مدخل (إيراد)</option>
+                            <option value="expense">مخرج (مصروف)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">البند *</label>
+                        <select id="tx-category" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">المبلغ (ج.م) *</label>
+                        <input type="number" id="tx-amount" min="1" step="0.01" required placeholder="0.00" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">التاريخ *</label>
+                        <input type="date" id="tx-date" required class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">طريقة الدفع / التحصيل</label>
+                    <select id="tx-method" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white">
+                        <option value="نقدي">نقدي</option>
+                        <option value="تحويل بنكي">تحويل بنكي</option>
+                        <option value="إنستاباي">إنستاباي</option>
+                        <option value="فودافون كاش">فودافون كاش</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">البيان / الملاحظات *</label>
+                    <textarea id="tx-desc" rows="2" required placeholder="تفاصيل العملية المادية..." class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" id="cancel-tx-modal-btn" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">إلغاء</button>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl font-bold shadow-sm">حفظ الحركة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="modal-confirm" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 text-center">
+            <h4 id="confirm-title" class="font-bold text-base text-slate-800 dark:text-white mb-2">تأكيد الحذف</h4>
+            <p id="confirm-desc" class="text-xs text-slate-500 mb-6">هل أنت متأكد من إتمام هذا الإجراء؟</p>
+            <div class="flex justify-center gap-3">
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold">إلغاء</button>
+                <button id="confirm-ok-btn" class="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-bold">نعم، تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Modal (admin: reset password etc.) -->
+    <div id="modal-prompt" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+            <h4 id="prompt-title" class="font-bold text-base text-slate-800 dark:text-white mb-3">إدخال</h4>
+            <input type="text" id="prompt-input" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 dark:text-white text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="flex justify-center gap-3">
+                <button id="prompt-cancel-btn" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold">إلغاء</button>
+                <button id="prompt-ok-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-xs font-bold">تأكيد</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/crypto.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/telegram.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

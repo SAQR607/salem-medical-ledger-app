@@ -1,0 +1,13 @@
+body {
+    font-family: 'Cairo', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+@media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; color: #000 !important; }
+    .print-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+}
