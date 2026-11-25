@@ -1,0 +1,31 @@
+name: Daily backup
+
+on:
+  schedule:
+    - cron: "30 1 * * *" # 03:30 Cairo / 01:30 UTC — snapshot the data repo to the backup repo
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mirror data repo into backup repo
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -e
+          git config --global user.name "salem-bot"
+          git config --global user.email "bot@users.noreply.github.com"
+          git clone --quiet "https://x-access-token:${GH_PAT}@github.com/SAQR607/salem-medical-ledger.git" data
+          cd data
+          # Keep only a rolling 30 days of history to bound repo growth.
+          if [ "$(git rev-list --count HEAD)" -gt 400 ]; then
+            git checkout --orphan tmp-latest
+            git commit --quiet -m "backup: rolling snapshot $(date -u +%F)"
+            git branch -D main
+            git branch -m main
+          fi
+          git remote add backup "https://x-access-token:${GH_PAT}@github.com/SAQR607/salem-medical-ledger-backup.git" 2>/dev/null || \
+            git remote set-url backup "https://x-access-token:${GH_PAT}@github.com/SAQR607/salem-medical-ledger-backup.git"
+          git push --force backup main
