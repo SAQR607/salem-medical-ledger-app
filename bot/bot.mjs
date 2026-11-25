@@ -9,7 +9,9 @@ import crypto from "node:crypto";
 
 const subtle = crypto.webcrypto.subtle;
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = String(process.env.TELEGRAM_CHAT_ID || "");
+// Comma-separated list of admin chats, e.g. "6527869936,1840535062"
+const CHATS = String(process.env.TELEGRAM_CHAT_ID || "")
+  .split(",").map((s) => s.trim()).filter(Boolean);
 const GH = process.env.GH_PAT;
 const OWNER = "SAQR607";
 const REPO = "salem-medical-ledger";
@@ -21,7 +23,7 @@ function b64ToBytes(s) {
   return new Uint8Array(un64(s));
 }
 
-if (!TOKEN || !CHAT_ID || !GH || !process.env.ADMIN_DATA_KEY) {
+if (!TOKEN || !CHATS.length || !GH || !process.env.ADMIN_DATA_KEY) {
   console.error("missing secrets: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / GH_PAT / ADMIN_DATA_KEY");
   process.exit(1);
 }
@@ -127,12 +129,14 @@ async function send(text, keyboard) {
     else cur = cur ? cur + "\n" + line : line;
   }
   if (cur) chunks.push(cur);
-  for (let i = 0; i < chunks.length; i++) {
-    await tg("sendMessage", {
-      chat_id: CHAT_ID,
-      text: chunks[i],
-      ...(keyboard && i === 0 ? { reply_markup: keyboard } : {}),
-    });
+  for (const chat of CHATS) {
+    for (let i = 0; i < chunks.length; i++) {
+      await tg("sendMessage", {
+        chat_id: chat,
+        text: chunks[i],
+        ...(keyboard && i === 0 ? { reply_markup: keyboard } : {}),
+      });
+    }
   }
 }
 
@@ -229,7 +233,7 @@ async function drainQueue(users, cfg) {
       const payload = JSON.parse(raw.text);
 
       if (payload.iv && payload.ct && payload.user) {
-        // encrypted financial alert (e.g. large transaction)
+        // encrypted alert (large transaction or activity log entry)
         const user = users.find((u) => u.username === payload.user);
         const key = await dataKeyFor(user);
         if (!key) throw new Error(`no escrow key for ${payload.user}`);
@@ -242,6 +246,14 @@ async function drainQueue(users, cfg) {
             `البند: ${data.category || "-"} | النوع: ${data.type === "income" ? "مدخل" : "مخرج"}\n` +
             `المبلغ: ${money(data.amount)}\n` +
             `التاريخ: ${data.date || "-"}`
+          );
+        } else if (payload.kind === "activity") {
+          // real-time activity feed: every action by every user
+          await send(
+            `🆕 نشاط جديد في النظام\n` +
+            `👤 ${user.displayName || user.username} (${user.username})\n` +
+            `📝 ${data.action || "-"}${data.detail ? "\nℹ️ " + data.detail : ""}\n` +
+            `🕐 ${data.at || "-"}`
           );
         }
       } else if (payload.kind === "login" || payload.kind === "login_fail") {
@@ -272,7 +284,7 @@ async function handleUpdate(update, users, cfg, dirty) {
   const msg = update.message;
   const cb = update.callback_query;
 
-  if (msg && String(msg.chat.id) === CHAT_ID) {
+  if (msg && CHATS.includes(String(msg.chat.id))) {
     const text = (msg.text || "").trim();
     if (text === "/start" || text === "/menu") {
       await send("لوحة تحكم نظام السجل المالي 🏥\nاختر أحد الأزرار بالأسفل:", MAIN_MENU);
@@ -293,7 +305,7 @@ async function handleUpdate(update, users, cfg, dirty) {
     return;
   }
 
-  if (cb && String(cb.message.chat.id) === CHAT_ID) {
+  if (cb && CHATS.includes(String(cb.message.chat.id))) {
     await tg("answerCallbackQuery", { callback_query_id: cb.id });
     const data = cb.data;
 
