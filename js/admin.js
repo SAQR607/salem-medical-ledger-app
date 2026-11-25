@@ -115,6 +115,7 @@
 
             document.getElementById("add-user-form").reset();
             renderAdmin();
+            Telegram.activity(Session, "إنشاء مستخدم", username + " (" + (role === "admin" ? "مدير" : "محاسب") + ")");
             showToast("تم إنشاء المستخدم " + username + " — كلمة المرور: " + password);
         } catch (err) {
             console.error(err);
@@ -137,6 +138,7 @@
                 u.active = u.active === false;
                 await Store.putJson("data/users.json", users, "users: toggle " + username);
                 renderAdmin();
+                Telegram.activity(Session, "تغيير حالة مستخدم", username + " → " + (u.active ? "نشط" : "معطّل"));
                 showToast("تم تحديث الحالة");
             } catch (e) {
                 console.error(e);
@@ -203,6 +205,7 @@
                 }
 
                 await Store.putJson("data/users.json", users, "users: reset password " + username);
+                Telegram.activity(Session, "تغيير كلمة مرور", username);
                 showToast("تم تغيير كلمة المرور لـ " + username);
             } catch (e) {
                 console.error(e);
@@ -226,6 +229,7 @@
                     await Store.del(paths[i], "data: delete " + paths[i]);
                 }
                 renderAdmin();
+                Telegram.activity(Session, "حذف مستخدم", username);
                 showToast("تم حذف المستخدم وبياناته");
             } catch (e) {
                 console.error(e);
