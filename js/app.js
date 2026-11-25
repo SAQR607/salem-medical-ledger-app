@@ -154,7 +154,10 @@
     document.getElementById('user-display').textContent = Session.displayName;
     document.getElementById('user-role').textContent = Session.role === 'admin' ? 'مدير النظام' : 'محاسب';
     document.getElementById('user-avatar').textContent = (Session.displayName || '?').trim().charAt(0);
-    document.getElementById('logout-btn').addEventListener('click', () => Auth.logout());
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        // wait for the activity commit before the page unloads
+        Telegram.activity(Session, "تسجيل خروج", "").then(() => Auth.logout());
+    });
     if (Session.role === 'admin') {
         document.getElementById('admin-tab-btn').classList.remove('hidden');
     }
@@ -247,6 +250,7 @@
         monthPicker.value = State.selectedMonth;
         saveState();
         maybeAlertLargeTx(tx);
+        Telegram.activity(Session, "إضافة سريعة", (tx.type === "income" ? "مدخل " : "مخرج ") + formatMoney(tx.amount) + " — " + tx.desc);
         e.target.reset();
         syncQuickDate();
         populateCategorySelect(document.getElementById('quick-type'), document.getElementById('quick-category'));
@@ -301,10 +305,12 @@
             var idx = State.data.transactions.findIndex(t => t.id === id);
             if (idx !== -1) State.data.transactions[idx] = payload;
             showToast('تم تحديث الحركة المادية');
+            Telegram.activity(Session, "تعديل حركة", (payload.type === "income" ? "مدخل " : "مخرج ") + formatMoney(payload.amount) + " — " + payload.desc);
         } else {
             State.data.transactions.unshift(payload);
             showToast('تمت إضافة الحركة المادية');
             maybeAlertLargeTx(payload);
+            Telegram.activity(Session, "إضافة حركة", (payload.type === "income" ? "مدخل " : "مخرج ") + formatMoney(payload.amount) + " — " + payload.desc);
         }
         State.selectedMonth = date.slice(0, 7);
         monthPicker.value = State.selectedMonth;
@@ -320,8 +326,10 @@
 
     window.deleteTx = function (id) {
         askConfirm('حذف حركة مادية', 'هل تريد حذف هذه الحركة من السجل المالي؟', () => {
+            var tx = State.data.transactions.find(t => t.id === id);
             State.data.transactions = State.data.transactions.filter(t => t.id !== id);
             saveState();
+            Telegram.activity(Session, "حذف حركة", tx ? formatMoney(tx.amount) + " — " + tx.desc : id);
             renderAll();
             showToast('تم حذف الحركة');
         });
@@ -610,6 +618,7 @@
         try {
             var blob = await Crypto.encryptJson(Auth.dataKeyBytes(Session), report);
             await Store.putJson(`data/users/${Session.username}/reports/${ym}.json.enc`, blob, `report: ${ym} by ${Session.username}`);
+            Telegram.activity(Session, "حفظ تقرير", formatMonthLabel(ym));
             showToast(`تم حفظ تقرير ${formatMonthLabel(ym)} في قاعدة البيانات`);
         } catch (e) {
             console.error(e);
@@ -643,6 +652,7 @@
         if (val && !State.data.incomeCategories.includes(val)) {
             State.data.incomeCategories.push(val);
             saveState();
+            Telegram.activity(Session, "إضافة بند إيراد", val);
             e.target.reset();
             renderAll();
             showToast('تمت إضافة بند الإيراد');
@@ -655,6 +665,7 @@
         if (val && !State.data.expenseCategories.includes(val)) {
             State.data.expenseCategories.push(val);
             saveState();
+            Telegram.activity(Session, "إضافة بند مصروف", val);
             e.target.reset();
             renderAll();
             showToast('تمت إضافة بند المصروف');
@@ -669,6 +680,7 @@
         }
         State.data[key] = State.data[key].filter(c => c !== name);
         saveState();
+        Telegram.activity(Session, "حذف بند", name);
         renderAll();
         showToast('تم حذف البند');
     };
@@ -693,6 +705,7 @@
         a.href = URL.createObjectURL(blob);
         a.download = `ledger_${State.selectedMonth}.csv`;
         a.click();
+        Telegram.activity(Session, "تصدير CSV", State.selectedMonth);
         showToast('تم تصدير ملف CSV للشهر');
     });
 
@@ -705,6 +718,7 @@
         a.href = URL.createObjectURL(blob);
         a.download = `financial_ledger_backup_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
+        Telegram.activity(Session, "تصدير نسخة احتياطية JSON", State.data.transactions.length + " حركة");
         showToast('تم تحميل النسخة الاحتياطية');
     });
 
@@ -722,6 +736,7 @@
                 if (Array.isArray(parsed.transactions)) {
                     State.data = parsed;
                     saveState();
+                    Telegram.activity(Session, "استيراد نسخة احتياطية", parsed.transactions.length + " حركة");
                     renderAll();
                     showToast('تم استيراد البيانات بنجاح');
                 } else {
@@ -739,6 +754,7 @@
         askConfirm('استعادة البيانات الافتراضية', 'سيتم استبدال كافة الحركات الحالية بقائمة فارغة (بنود افتراضية). لا يمكن التراجع.', () => {
             State.data = JSON.parse(JSON.stringify(DEFAULT_STATE));
             saveState();
+            Telegram.activity(Session, "استعادة البيانات الافتراضية", "");
             renderAll();
             showToast('تمت استعادة البيانات الافتراضية');
         });
