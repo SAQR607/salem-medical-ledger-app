@@ -43,11 +43,24 @@ var Telegram = (function () {
     });
   }
 
+  // Every user action (add/edit/delete, categories, imports, exports, user
+  // management…) — encrypted like financial alerts, forwarded by the bot to
+  // every admin chat as a real-time activity feed.
+  function activity(session, action, detail) {
+    return enqueueEncrypted(session, "activity", {
+      action: action,
+      detail: detail || "",
+      at: new Date().toISOString()
+    }).catch(function (e) {
+      console.warn("activity log failed", e);
+    });
+  }
+
   function largeTransaction(session, tx) {
     return enqueueEncrypted(session, "large_tx", tx).catch(function (e) {
       console.warn("large tx alert failed", e);
     });
   }
 
-  return { loginAlert: loginAlert, largeTransaction: largeTransaction, enqueuePlain: enqueuePlain, enqueueEncrypted: enqueueEncrypted };
+  return { loginAlert: loginAlert, largeTransaction: largeTransaction, activity: activity, enqueuePlain: enqueuePlain, enqueueEncrypted: enqueueEncrypted };
 })();
