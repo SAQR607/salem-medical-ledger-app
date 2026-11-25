@@ -1,0 +1,27 @@
+name: Telegram bot
+
+on:
+  schedule:
+    - cron: "*/2 * * * *" # every 2 minutes: alerts + button panel + 21:00 Cairo reports
+  workflow_dispatch:
+
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4 # app repo (public) — bot code lives here
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ADMIN_DATA_KEY: ${{ secrets.ADMIN_DATA_KEY }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: node bot/bot.mjs
