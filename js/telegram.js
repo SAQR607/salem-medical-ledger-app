@@ -1,12 +1,26 @@
 // Browser side of the Telegram integration: drops encrypted alert messages into
-// data/queue/ in the database repo. The GitHub Actions bot picks them up
-// (every minute), decrypts them with the admin key it holds as a secret, and
-// forwards them to the admin's chat. The bot token never reaches the browser.
+// data/queue/ in the database repo. After each write it kicks the GitHub
+// Actions bot via repository_dispatch so delivery is real-time; the schedule
+// trigger is only a fallback. The bot token never reaches the browser.
 var Telegram = (function () {
   var queueBusy = false;
 
   function nowStamp() {
     return new Date().toISOString().replace(/[:.]/g, "-");
+  }
+
+  // Ask Actions to drain the queue now. Fire-and-forget: if this fails the
+  // schedule trigger still picks the file up later.
+  function kickBot() {
+    fetch("https://api.github.com/repos/" + LEDGER_CONFIG.OWNER + "/" + LEDGER_CONFIG.APP_REPO + "/dispatches", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + LEDGER_CONFIG.TOKEN,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ event_type: "queue-drain" })
+    }).catch(function (e) { console.warn("bot kick failed", e); });
   }
 
   // Login notices are metadata (who/when) — written plainly so the bot can read
@@ -15,6 +29,7 @@ var Telegram = (function () {
     var path = "data/queue/" + nowStamp() + "-" + Math.random().toString(36).slice(2, 7) + ".json";
     try {
       await Store.putJson(path, payload, "queue: " + payload.kind);
+      kickBot();
     } catch (e) {
       console.warn("queue write failed", e);
     }
@@ -30,6 +45,7 @@ var Telegram = (function () {
     var path = "data/queue/" + nowStamp() + "-" + Math.random().toString(36).slice(2, 7) + ".enc";
     try {
       await Store.putJson(path, payload, "queue: " + kind);
+      kickBot();
     } catch (e) {
       console.warn("queue write failed", e);
     }
