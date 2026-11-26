@@ -2,9 +2,12 @@ name: Telegram bot
 
 on:
   schedule:
-    # GitHub minimum schedule interval is 5 minutes â€” shorter crons are silently never registered.
-    - cron: "*/5 * * * *" # every 5 minutes: alerts + button panel + 21:00 Cairo reports
+    # GitHub minimum schedule interval is 5 minutes — shorter crons are silently never registered.
+    - cron: "*/5 * * * *" # every 5 minutes: fallback drain + 21:00 Cairo reports
   workflow_dispatch:
+  repository_dispatch:
+    # fired by the browser after every queue write — real-time drain
+    types: [queue-drain]
 
 concurrency:
   group: telegram-bot
@@ -15,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4 # app repo (public) â€” bot code lives here
+      - uses: actions/checkout@v4 # app repo (public) — bot code lives here
       - uses: actions/setup-node@v4
         with:
           node-version: 20
