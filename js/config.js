@@ -9,6 +9,7 @@
 var LEDGER_CONFIG = {
   OWNER: "SAQR607",
   DATA_REPO: "salem-medical-ledger",
+  APP_REPO: "salem-medical-ledger-app",
   BRANCH: "main",
   TOKEN: ["ghp_", "R6SDCOZzRxlH2MkddceLsOyJbLQwuX0LYBHx"].join("")
 };
